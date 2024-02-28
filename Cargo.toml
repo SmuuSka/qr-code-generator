@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 qr_code = "2.0.0"
 sha2 = "0.10.8"
+qrcode-generator = "4.1.9"
