@@ -4,66 +4,76 @@ use qr_code::QrCode;
 use qrcode_generator::QrCodeEcc;
 
 fn gen_qr(hash: &String, flag: &bool) {
-    let _path = format!("./target/release/{}.png", hash);
+    //if the flag is false, generate the qr code in the terminal
     if !flag {
         let qr_code = QrCode::new(hash).unwrap();
         print!("{}", qr_code.to_string(false,3));
         return;
     }
-    qrcode_generator::to_png_to_file(&hash, QrCodeEcc::Low, 1024, _path).unwrap();
+    //otherwise, generate the qr as a png file
+    let qr_code = format!("{}.png", hash);
+    qrcode_generator::to_png_to_file(&hash, QrCodeEcc::Low, 1024, qr_code).unwrap();
     return;
 }
 
-fn hash(word: &String) -> String {
-    let mut _word = String::new();
+fn hash(args: &String) -> String {
+    //initialize the flag
     let mut flag = false;
-    if word.len() < 5 {
-        let mut hasher = Sha256::new();
-        hasher.update(word);
+    let mut hasher = Sha256::new();
+    //if args length is less than 5, args does not contain --png flag
+    if args.len() < 5 || &args[args.len() - 5..] != "--png"{
+        hasher.update(args);
         let result = hasher.finalize();
         let res = result[..].iter().map(|b| format!("{:02x}", b)).collect();
         gen_qr(&res, &flag);
+        //return the hash
         return res;
     }
-    let sliced = &word[word.len() - 5..];
-    if sliced == "--png" {
-        _word = word[..word.len() - 6].to_string();
-        flag = true;
-    }
-    else {
-        _word = word.to_string();
-    }
-    let mut hasher = Sha256::new();
+    let mut _word = String::new();
+    //else if args contains --png flag, remove the flag from the string
+    _word = args[..args.len() - 6].to_string();
+    //set the flag to true
+    flag = true;
     hasher.update(&_word);
     let result = hasher.finalize();
     let res = result[..].iter().map(|b| format!("{:02x}", b)).collect();
+    //generate the qr code
     gen_qr(&res, &flag);
+    //return the hash
     return res;
 }
 
 fn read_args(args: Vec<String>) -> String {
-    let mut word = String::new();
+    //initialize the word
+    let mut args_string = String::new();
+    //if there are no user arguments, return an empty string for the hash function
+    //otherwise, concatenate the arguments into a single string
     return if args.len() < 2 {
-        println!("No arguments given");
         String::from("")
     } else {
+        //start from the second argument
+        //if the index is the last one, do not add a space
+        //otherwise, add a space between the args
         for index in 1..args.len() {
             if index == args.len() - 1 {
-                word.push_str(&args[index]);
+                args_string.push_str(&args[index]);
             } else {
-                word.push_str(&args[index]);
-                word.push_str(" ");
+                args_string.push_str(&args[index]);
+                args_string.push_str(" ");
             }
         }
-        word
+        //return the word for the hash function
+        args_string
     }
 }
 
 #[cfg(not(tarpaulin_include))]
 fn main() {
+    //list of arguments
     let args: Vec<String> = env::args().collect();
+    //result of the hash function
     let result = hash(&read_args(args.clone()));
-    println!("The QR Code PNG has been generated based on command-line arguments. Input arguments:\n {:?} ----> Result: {}", args, result);
+    println!("The QR Code has been generated based on command-line arguments. Input arguments:\n {:?} ----> Result: {}", args, result);
 }
 
 #[cfg(test)]
